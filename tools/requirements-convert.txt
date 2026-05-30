@@ -1,0 +1,8 @@
+# One-off: PyTorch colab.pth -> TFLite (see convert_colab_pth_to_tflite.py)
+torch
+torchvision
+tensorflow
+onnx>=1.14
+onnx2tf>=1.28
+# 0.5.8 can break with onnx 1.21+ (missing onnx.helper.float32_to_bfloat16); 0.5.2 works.
+onnx_graphsurgeon==0.5.2

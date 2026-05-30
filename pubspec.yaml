@@ -1,0 +1,36 @@
+name: corn_detector
+description: Corn Seed Detection App
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+  camera: ^0.10.5+9
+  tflite_flutter: ^0.12.1
+  image: ^4.1.7
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/models/yolo-part2.tflite
+    - assets/models/run_1_best_builtin.tflite
+    - assets/models/variety_model.tflite
+    - assets/models/viability5.tflite
