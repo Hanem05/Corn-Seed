@@ -4,6 +4,8 @@ import 'dart:io' show File;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../l10n/app_i18n.dart';
+import '../widgets/scan_status_panel.dart';
 
 import '../models/detection.dart';
 import '../models/seed_scan_mode.dart';
@@ -167,13 +169,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
     });
   }
 
-  String _captureTitle() => widget.scanMode == SeedScanMode.variety
-      ? 'Capture · variety'
-      : 'Capture · viability';
-
-  String _hintText() => widget.scanMode == SeedScanMode.variety
-      ? 'Frame the seeds, then tap Capture. YOLO + variety classification runs on the still photo.'
-      : 'Frame the seeds, then tap Capture. YOLO + viability classification runs on the still photo.';
+  String _captureTitle() =>
+      '${AppI18n.t(context, 'guide.capture_headline')} · ${AppI18n.t(context, 'mode.${widget.scanMode.name}')}';
 
   Map<String, int> _classCounts(List<Detection> detections) {
     final counts = <String, int>{};
@@ -194,165 +191,57 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 
   Widget _captureSummaryCard(List<Detection> detections) {
-    final total = detections.length;
     final counts = _classCounts(detections);
-    final modeText = widget.scanMode == SeedScanMode.variety
-        ? 'Variety Summary'
-        : 'Viability Summary';
-    final topClass = counts.isEmpty ? '-' : counts.entries.first.key;
-    final topClassCount = counts.isEmpty ? 0 : counts.entries.first.value;
     final theme = Theme.of(context);
-
-    String pretty(String raw) {
-      final cleaned = raw.replaceAll('-', ' ').replaceAll('_', ' ');
-      return cleaned
-          .split(' ')
-          .where((w) => w.isNotEmpty)
-          .map((w) => '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
-          .join(' ');
-    }
-
-    Widget metricTile(String label, String value, {IconData? icon}) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 14, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(
-                    label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
+    String t(String key) => AppI18n.t(context, key);
     return Card(
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
+      margin: const EdgeInsets.all(20),
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.analytics_outlined, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    modeText,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    widget.scanMode == SeedScanMode.variety ? 'Variety' : 'Viability',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        padding: const EdgeInsets.all(24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(t('design.results'), style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 20),
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Text('${detections.length}',
+                style: theme.textTheme.headlineLarge?.copyWith(fontSize: 48)),
+            const SizedBox(width: 16),
+            Expanded(
+                child:
+                    Text(t('design.total'), style: theme.textTheme.bodyLarge)),
+            const Icon(Icons.grain_rounded, size: 32),
+          ]),
+          const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+          if (detections.isEmpty)
+            Text(t('design.empty'))
+          else ...[
+            Text(t('design.breakdown'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                metricTile(
-                  'Total seeds',
-                  '$total',
-                  icon: Icons.grain_outlined,
-                ),
-                const SizedBox(width: 10),
-                metricTile(
-                  'Top class',
-                  '${pretty(topClass)} ($topClassCount)',
-                  icon: Icons.emoji_events_outlined,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (counts.isEmpty)
-              Text(
-                'No class labels available.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            else ...[
-              Text(
-                'Class breakdown',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: counts.entries
-                    .map(
-                      (e) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.45,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        child: Text(
-                          '${pretty(e.key)}: ${e.value}',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ],
+            if (counts.isEmpty) Text(t('design.unclassified')),
+            ...counts.entries.map((entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(children: [
+                    Row(children: [
+                      Expanded(
+                          child: Text(
+                              entry.key
+                                  .replaceAll('-', ' ')
+                                  .replaceAll('_', ' '),
+                              style: theme.textTheme.labelLarge)),
+                      const SizedBox(width: 12),
+                      Text('${entry.value}',
+                          style: theme.textTheme.titleMedium),
+                    ]),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                        value: entry.value / detections.length,
+                        minHeight: 6,
+                        borderRadius: BorderRadius.circular(8),
+                        backgroundColor: theme.colorScheme.primaryContainer),
+                  ]),
+                )),
           ],
-        ),
+        ]),
       ),
     );
   }
@@ -394,14 +283,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
             onPressed: () => Navigator.of(context).maybePop(),
           ),
         ),
-        body: Column(
+        body: ListView(
           children: [
-            _captureSummaryCard(_resultLetterbox),
-            Expanded(
+            SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.45,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final layout = _resultLayout!;
-                  final bounds = Size(constraints.maxWidth, constraints.maxHeight);
+                  final bounds =
+                      Size(constraints.maxWidth, constraints.maxHeight);
                   final imageRect = imageRectContain(
                     bounds,
                     layout.srcWidth,
@@ -432,6 +322,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 },
               ),
             ),
+            _captureSummaryCard(_resultLetterbox),
             SafeArea(
               top: false,
               child: Padding(
@@ -442,7 +333,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _busy ? null : _retake,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Capture again'),
+                        label: Text(AppI18n.t(context, 'design.retake')),
                       ),
                     ),
                   ],
@@ -482,33 +373,13 @@ class _CaptureScreenState extends State<CaptureScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_busy)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Card(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              SizedBox(width: 12),
-                              Text('Running YOLO & classifier…'),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                   FilledButton.icon(
                     onPressed: _busy ? null : _onCapture,
                     icon: const Icon(Icons.camera_alt),
-                    label: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('Capture image'),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(AppI18n.t(context,
+                          _busy ? 'design.analyzing' : 'design.capture')),
                     ),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(52),
@@ -523,15 +394,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
             left: 16,
             right: 16,
             child: SafeArea(
-              child: Card(
-                color: Colors.black54,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(
-                    _hintText(),
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.95)),
-                  ),
-                ),
+              child: ScanStatusPanel(
+                title: AppI18n.t(
+                    context, _busy ? 'design.analyzing' : 'design.ready'),
+                message: AppI18n.t(context, 'design.footer'),
+                busy: _busy,
               ),
             ),
           ),

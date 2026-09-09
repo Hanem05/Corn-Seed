@@ -4,6 +4,8 @@ import 'dart:io' show File;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../l10n/app_i18n.dart';
+import '../widgets/scan_status_panel.dart';
 import '../models/detection.dart';
 import '../models/seed_scan_mode.dart';
 import '../services/corn_variety_classifier.dart';
@@ -22,8 +24,6 @@ const Duration _kInferenceInterval = Duration(milliseconds: 1300);
 const int _kLabelTrackMaxMisses = 3;
 const int _kLabelHistory = 5;
 const double _kLabelTrackMatchIou = 0.35;
-const double _kVarietyMinGapKeepPrev = 0.10;
-const double _kTinyBoxAreaPx = 1400;
 
 class _LabelTrack {
   _LabelTrack({
@@ -35,6 +35,7 @@ class _LabelTrack {
   final List<String> recentLabels;
   int misses = 0;
 }
+
 const int _kRealtimeMaxSecondaryDetections = 80;
 
 class CameraScreen extends StatefulWidget {
@@ -176,6 +177,7 @@ class _CameraScreenState extends State<CameraScreen> {
       if (piped.detections.isEmpty) {
         setState(() {
           _varietyDisplayNonce++;
+          _labelTracks.clear();
           detections = [];
         });
         return;
@@ -279,18 +281,6 @@ class _CameraScreenState extends State<CameraScreen> {
     return best;
   }
 
-  String _maybeHoldPreviousVarietyLabel(Detection det, String incoming, String stable) {
-    final probs = det.varietyProbs;
-    if (probs == null || probs.length < 2) return incoming;
-    final sorted = [...probs]..sort((a, b) => b.compareTo(a));
-    final gap = sorted[0] - sorted[1];
-    final tiny = det.w * det.h < _kTinyBoxAreaPx;
-    if ((gap < _kVarietyMinGapKeepPrev || tiny) && stable.isNotEmpty) {
-      return stable;
-    }
-    return incoming;
-  }
-
   List<Detection> _stabilizeRealtimeLabels(List<Detection> incoming) {
     for (final t in _labelTracks) {
       t.misses += 1;
@@ -310,16 +300,13 @@ class _CameraScreenState extends State<CameraScreen> {
         }
       }
 
-      String? label = _seedLabel(det);
+      final label = _seedLabel(det);
       if (bestIdx >= 0 && bestIou >= _kLabelTrackMatchIou) {
         final tr = _labelTracks[bestIdx];
         usedTracks.add(bestIdx);
         tr.misses = 0;
         tr.lastDetection = det;
-        final stable = _modeLabel(tr.recentLabels);
-        if (label != null && widget.scanMode == SeedScanMode.variety) {
-          label = _maybeHoldPreviousVarietyLabel(det, label, stable);
-        }
+        // Vote on fresh predictions so an early mistake can age out.
         if (label != null && label.isNotEmpty) {
           tr.recentLabels.add(label);
           if (tr.recentLabels.length > _kLabelHistory) {
@@ -371,7 +358,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
     setState(() => _isProcessing = true);
     try {
-      final bd = await DefaultAssetBundle.of(context).load('assets/test_seed.jpg');
+      final bd =
+          await DefaultAssetBundle.of(context).load('assets/test_seed.jpg');
       final piped = await runSeedScanPipeline(
         jpegBytes: bd.buffer.asUint8List(),
         yolo: yolo,
@@ -436,7 +424,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     try {
-      final bd = await DefaultAssetBundle.of(context).load('assets/test_seed.jpg');
+      final bd =
+          await DefaultAssetBundle.of(context).load('assets/test_seed.jpg');
       final bytes = bd.buffer.asUint8List();
       final ({String label, double confidence})? r;
       if (widget.scanMode == SeedScanMode.variety) {
@@ -447,11 +436,13 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!mounted || !context.mounted) return;
       if (r == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Classifier: inference failed or decode error.')),
+          const SnackBar(
+              content: Text('Classifier: inference failed or decode error.')),
         );
         return;
       }
-      final mode = widget.scanMode == SeedScanMode.variety ? 'Variety' : 'Viability';
+      final mode =
+          widget.scanMode == SeedScanMode.variety ? 'Variety' : 'Viability';
       final labelText = widget.scanMode == SeedScanMode.variety
           ? formatSnakeCaseLabel(r.label)
           : r.label;
@@ -482,13 +473,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  String _realtimeTitle() => widget.scanMode == SeedScanMode.variety
-      ? 'Real-time · variety'
-      : 'Real-time · viability';
-
-  String _bannerSubtitle() => widget.scanMode == SeedScanMode.variety
-      ? 'YOLO + variety (5-class)'
-      : 'YOLO + viability (2-class)';
+  String _realtimeTitle() =>
+      '${AppI18n.t(context, 'landing.realtime')} · ${AppI18n.t(context, 'mode.${widget.scanMode.name}')}';
 
   @override
   Widget build(BuildContext context) {
@@ -535,25 +521,28 @@ class _CameraScreenState extends State<CameraScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'test_classifier_full',
-            tooltip: 'Test classifier on asset image only (no YOLO)',
-            onPressed: _isProcessing ? null : _testClassifierFullImageOnly,
-            child: const Icon(Icons.layers_outlined),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'test_yolo_asset',
-            onPressed: _isProcessing ? null : _runBundledSelfTest,
-            icon: const Icon(Icons.bug_report_outlined),
-            label: const Text('Test image'),
-          ),
-        ],
-      ),
+      floatingActionButton: !kDebugMode
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'test_classifier_full',
+                  tooltip: 'Test classifier on asset image only (no YOLO)',
+                  onPressed:
+                      _isProcessing ? null : _testClassifierFullImageOnly,
+                  child: const Icon(Icons.layers_outlined),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'test_yolo_asset',
+                  onPressed: _isProcessing ? null : _runBundledSelfTest,
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: const Text('Test image'),
+                ),
+              ],
+            ),
       body: SizedBox.expand(
         child: Stack(
           key: _stackKey,
@@ -564,23 +553,24 @@ class _CameraScreenState extends State<CameraScreen> {
               key: _previewKey,
               child: CameraPreview(c),
             ),
-
             RepaintBoundary(
               child: DetectionOverlay(
                 detections: detections,
                 varietyDisplayNonce: _varietyDisplayNonce,
               ),
             ),
-
             Positioned(
-              top: 12,
+              bottom: 24,
               left: 20,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.black54,
-                child: Text(
-                  _bannerSubtitle(),
-                  style: const TextStyle(color: Colors.white),
+              right: 20,
+              child: SafeArea(
+                top: false,
+                child: ScanStatusPanel(
+                  title: AppI18n.t(context,
+                      _isProcessing ? 'design.analyzing' : 'design.live'),
+                  message: AppI18n.t(context, 'design.total'),
+                  busy: _isProcessing,
+                  count: detections.length,
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 import '../models/detection.dart';
 import '../utils/inference_constants.dart';
@@ -36,8 +37,8 @@ class DetectionOverlay extends StatelessWidget {
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.red, width: 2),
-                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(color: AppTheme.gold, width: 2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
@@ -47,9 +48,9 @@ class DetectionOverlay extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.78),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.redAccent, width: 1),
+                    color: AppTheme.forest.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.gold, width: 1),
                   ),
                   child: Text(
                     chipText,

@@ -8,45 +8,13 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../models/detection.dart';
 import '../utils/camera_image_input.dart';
+import '../utils/variety_prediction.dart';
+
+export '../utils/variety_prediction.dart' show kCornVarietyLabels;
 
 const String _kClassifierAsset = 'assets/models/variety_model.tflite';
 
-/// Index `i` maps to your trained 5-class order.
-const List<String> kCornVarietyLabels = [
-  'HYBRID-SWEET-CORN',
-  'OPV-WHITE-CORN',
-  'OPV-YELLOW-CORN',
-  'PURPLE-KALIMPOS-CORN',
-  'CGUARD-WHITE-CORN',
-];
-const Set<int> _kDisabledVarietyIndices = {1}; // Disable OPV-WHITE-CORN
-
 const int _kClassifierInputSize = 224;
-
-int _bestEnabledVarietyIndex(List<double> scores) {
-  if (scores.isEmpty) return 0;
-  var bestI = -1;
-  var bestV = double.negativeInfinity;
-  for (var i = 0; i < scores.length; i++) {
-    if (_kDisabledVarietyIndices.contains(i)) continue;
-    final v = scores[i];
-    if (v > bestV) {
-      bestV = v;
-      bestI = i;
-    }
-  }
-  if (bestI >= 0) return bestI;
-  // Fallback safety if all classes were disabled.
-  var fallbackI = 0;
-  var fallbackV = scores[0];
-  for (var i = 1; i < scores.length; i++) {
-    if (scores[i] > fallbackV) {
-      fallbackV = scores[i];
-      fallbackI = i;
-    }
-  }
-  return fallbackI;
-}
 
 /// Match training with MobileNet include_preprocessing=True: feed 0..255.
 double _classifierRgbChannel(int value) =>
@@ -101,14 +69,32 @@ void _varietyWorkerMain(List<Object?> args) {
     interpreter = Interpreter.fromBuffer(modelBytes, options: opt);
     opt.delete();
   } catch (e, st) {
+    inbox.close();
     mainSendPort.send('error:$e\n$st');
     return;
   }
 
-  final inTensor = interpreter.getInputTensor(0);
-  final outTensor = interpreter.getOutputTensor(0);
-  final inByteSize = inTensor.numBytes();
-  final outByteSize = outTensor.numBytes();
+  late final int inByteSize;
+  late final int outByteSize;
+  try {
+    final inputs = interpreter.getInputTensors();
+    final outputs = interpreter.getOutputTensors();
+    if (inputs.length != 1 || outputs.length != 1 ||
+        inputs.single.type != TensorType.float32 ||
+        outputs.single.type != TensorType.float32 ||
+        inputs.single.shape.join(',') != '1,224,224,3' ||
+        outputs.single.shape.join(',') != '1,${kCornVarietyLabels.length}') {
+      throw StateError('Expected float32 RGB [1,224,224,3] input and '
+          '[1,${kCornVarietyLabels.length}] variety output.');
+    }
+    inByteSize = inputs.single.numBytes();
+    outByteSize = outputs.single.numBytes();
+  } catch (e, st) {
+    interpreter.close();
+    inbox.close();
+    mainSendPort.send('error:$e\n$st');
+    return;
+  }
   final inFlat = Float32List(inByteSize ~/ 4);
   final outFlat = Float32List(outByteSize ~/ 4);
 
@@ -143,7 +129,7 @@ void _varietyWorkerMain(List<Object?> args) {
     runOnResized(resized224);
 
     // Output is softmax probabilities from the exported graph — use argmax only.
-    final bestI = _bestEnabledVarietyIndex(outFlat);
+    final bestI = bestVarietyIndex(outFlat);
     final bestV = outFlat[bestI];
     final label = bestI < kCornVarietyLabels.length
         ? kCornVarietyLabels[bestI]
@@ -259,7 +245,7 @@ void _varietyWorkerMain(List<Object?> args) {
           growable: false,
         );
 
-        final bestI = _bestEnabledVarietyIndex(avg);
+        final bestI = bestVarietyIndex(avg);
         final bestV = avg[bestI];
 
         final label = bestI < kCornVarietyLabels.length

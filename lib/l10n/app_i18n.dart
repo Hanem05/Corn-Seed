@@ -27,7 +27,9 @@ class AppI18n {
 
   static String t(BuildContext context, String key) {
     final lang = _lang(context);
-    return _localized[key]?[lang] ?? _localized[key]?[AppLanguage.english] ?? key;
+    return _localized[key]?[lang] ??
+        _localized[key]?[AppLanguage.english] ??
+        key;
   }
 
   /// Replaces `{{mode}}` with [modeLabel] (e.g. Variety / Viability in the active language).
@@ -36,13 +38,113 @@ class AppI18n {
   }
 
   static const Map<String, Map<AppLanguage, String>> _localized = {
+    'design.headline': {
+      AppLanguage.english: 'Know your seeds.',
+      AppLanguage.waray: 'Kilalaha an imo mga liso.',
+      AppLanguage.tagalog: 'Kilalanin ang iyong mga buto.',
+    },
+    'design.intro': {
+      AppLanguage.english: 'A closer look at your corn, one scan at a time.',
+      AppLanguage.waray: 'Usisaha an imo mais ha kada pag-scan.',
+      AppLanguage.tagalog: 'Suriin ang iyong mais sa bawat pag-scan.',
+    },
+    'design.hero': {
+      AppLanguage.english: 'Small seeds. More insight.',
+      AppLanguage.waray: 'Gutiay nga liso. Dugang nga hibaro.',
+      AppLanguage.tagalog: 'Maliliit na buto. Dagdag na kaalaman.',
+    },
+    'design.hero_body': {
+      AppLanguage.english:
+          'Explore variety and assess visible seed quality with your camera.',
+      AppLanguage.waray:
+          'Kilalaha an klase ngan usisaha an hitsura han liso gamit an camera.',
+      AppLanguage.tagalog:
+          'Kilalanin ang uri at suriin ang hitsura ng buto gamit ang camera.',
+    },
+    'design.variety_body': {
+      AppLanguage.english: 'Identify the corn variety of each detected seed.',
+      AppLanguage.waray: 'Kilalaha an klase han tagsa nga liso han mais.',
+      AppLanguage.tagalog:
+          'Kilalanin ang uri ng bawat natukoy na buto ng mais.',
+    },
+    'design.viability_body': {
+      AppLanguage.english: 'Assess visible signs of seed viability.',
+      AppLanguage.waray:
+          'Usisaha an nakikita nga mga tigaman han kalidad han liso.',
+      AppLanguage.tagalog:
+          'Suriin ang nakikitang palatandaan ng kalidad ng buto.',
+    },
+    'design.scan_method': {
+      AppLanguage.english: 'Choose how to scan',
+      AppLanguage.waray: 'Pili hin paagi han pag-scan',
+      AppLanguage.tagalog: 'Pumili ng paraan ng pag-scan',
+    },
+    'design.footer': {
+      AppLanguage.english: 'Good light. Clear focus. Better scans.',
+      AppLanguage.waray: 'Maupay nga suga. Klaro nga focus.',
+      AppLanguage.tagalog: 'Maayos na ilaw. Malinaw na focus.',
+    },
+    'design.analyzing': {
+      AppLanguage.english: 'Analyzing seeds…',
+      AppLanguage.waray: 'Gin-uusisa an mga liso…',
+      AppLanguage.tagalog: 'Sinusuri ang mga buto…',
+    },
+    'design.ready': {
+      AppLanguage.english: 'Position your seeds',
+      AppLanguage.waray: 'Ibutang an imo mga liso',
+      AppLanguage.tagalog: 'Iposisyon ang iyong mga buto',
+    },
+    'design.live': {
+      AppLanguage.english: 'Live analysis',
+      AppLanguage.waray: 'Live nga pag-usisa',
+      AppLanguage.tagalog: 'Live na pagsusuri',
+    },
+    'design.results': {
+      AppLanguage.english: 'Scan results',
+      AppLanguage.waray: 'Mga resulta han scan',
+      AppLanguage.tagalog: 'Mga resulta ng scan',
+    },
+    'design.total': {
+      AppLanguage.english: 'Seeds detected',
+      AppLanguage.waray: 'Mga liso nga nakita',
+      AppLanguage.tagalog: 'Mga natukoy na buto',
+    },
+    'design.breakdown': {
+      AppLanguage.english: 'Classification breakdown',
+      AppLanguage.waray: 'Mga klase han liso',
+      AppLanguage.tagalog: 'Mga uri ng buto',
+    },
+    'design.empty': {
+      AppLanguage.english:
+          'No corn seeds detected. Try better lighting and a clearer view.',
+      AppLanguage.waray:
+          'Waray liso han mais nga nakita. Sulayi hin mas maupay nga suga ngan mas klaro nga kuha.',
+      AppLanguage.tagalog:
+          'Walang natukoy na buto ng mais. Subukan ang mas maayos na ilaw at mas malinaw na kuha.',
+    },
+    'design.unclassified': {
+      AppLanguage.english: 'Not classified',
+      AppLanguage.waray: 'Waray pa maklasipikar',
+      AppLanguage.tagalog: 'Hindi pa natutukoy ang uri',
+    },
+    'design.retake': {
+      AppLanguage.english: 'Scan again',
+      AppLanguage.waray: 'Pag-scan utro',
+      AppLanguage.tagalog: 'Mag-scan muli',
+    },
+    'design.capture': {
+      AppLanguage.english: 'Take photo',
+      AppLanguage.waray: 'Pagkuha hin retrato',
+      AppLanguage.tagalog: 'Kumuha ng larawan',
+    },
     'app.title': {
       AppLanguage.english: 'Corn seed detector',
       AppLanguage.waray: 'Detektor han liso han mais',
       AppLanguage.tagalog: 'Detektor ng buto ng mais',
     },
     'landing.subtitle': {
-      AppLanguage.english: 'YOLO finds seeds, then pick what to run on each crop.',
+      AppLanguage.english:
+          'YOLO finds seeds, then pick what to run on each crop.',
       AppLanguage.waray:
           'An YOLO nakakakita han mga liso, tapos pili-a kon ano nga modelo an ipadagan kada crop.',
       AppLanguage.tagalog:

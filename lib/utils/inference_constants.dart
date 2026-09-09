@@ -1,15 +1,20 @@
 import '../models/detection.dart';
 
 /// YOLO boxes below this confidence are dropped: no overlay and no MobileNet crops.
-/// 0.75 was too strict for many phone captures (scores often ~0.45–0.65 on real seeds).
-const double kMinYoloConfidence = 0.18;
+/// Conservative starting point for background rejection; calibrate with real
+/// corn and non-corn validation images before treating this as an accuracy target.
+const double kMinYoloConfidence = 0.50;
 
 List<Detection> detectionsAboveYoloThreshold(List<Detection> raw) {
-  return raw.where((d) => d.confidence >= kMinYoloConfidence).toList();
+  return raw
+      .where((d) =>
+          d.confidence.isFinite &&
+          d.confidence >= kMinYoloConfidence &&
+          d.confidence <= 1.0)
+      .toList();
 }
 
-/// UI-only confidence boost for variety display.
-/// Keeps values high for presentation without changing model predictions.
+/// Display the model's actual score without a presentation boost.
 double displayVarietyConfidence(
   double raw,
   String? varietyLabel, {
@@ -19,7 +24,5 @@ double displayVarietyConfidence(
   double boxW = 1,
   double boxH = 1,
 }) {
-  final c = raw.clamp(0.0, 1.0);
-  final boosted = (c + 0.12).clamp(0.0, 1.0);
-  return boosted < 0.90 ? 0.90 : boosted;
+  return raw.isFinite ? raw.clamp(0.0, 1.0) : 0.0;
 }

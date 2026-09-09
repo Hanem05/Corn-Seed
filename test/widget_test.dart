@@ -11,9 +11,10 @@ void main() {
       const MyApp(cameras: <CameraDescription>[]),
     );
     await tester.pump();
+    await tester.scrollUntilVisible(find.text('No camera found on this device.'), 200);
 
     expect(
-      find.text('No camera available on this device.'),
+      find.text('No camera found on this device.'),
       findsOneWidget,
     );
   });

@@ -1,15 +1,17 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_i18n.dart';
 import 'screens/landing_screen.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   List<CameraDescription> cameras = [];
   try {
-    cameras = await availableCameras();
+    if (!kIsWeb) cameras = await availableCameras();
   } catch (_) {}
 
   runApp(MyApp(cameras: cameras));
@@ -39,6 +41,7 @@ class _MyAppState extends State<MyApp> {
           // from [AppLanguageScope] instead.
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
